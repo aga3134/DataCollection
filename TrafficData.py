@@ -39,7 +39,7 @@ class TrafficData:
                 INDEX(siteID),\
                 INDEX(type),\
                 INDEX(time),\
-                FOREIGN KEY (siteID) REFERENCES Trafficsites(id)\
+                FOREIGN KEY (siteID) REFERENCES TrafficSites(id)\
                 );"
             cursor.execute(sql)
 
