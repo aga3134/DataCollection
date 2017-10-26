@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 23 12:10:08 2017
+
+@author: aga
+"""
+
+def GenValue(record, keyStr):
+    val = ""
+    arr = keyStr.split(",")
+    
+    n = len(arr)
+    for i in range(0,n):
+        key = arr[i].strip()
+        value = record[key]
+        #字串
+        if isinstance(value,str):
+            val+="'"+value+"'"
+        else:   #數字
+            val+=str(value)
+        if i < n-1:
+            val+=","
+    return val

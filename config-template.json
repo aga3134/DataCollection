@@ -1,0 +1,9 @@
+{
+    "mysqlAuth": {
+        "host": "YourDatabaseHost",
+        "dbName": "YourDatabaseName",
+        "username": "YourUserName",
+        "password": "YourPassword"
+    },
+    "weatherKey": "YourKeyForWeatherData"
+}
