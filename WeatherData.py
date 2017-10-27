@@ -45,7 +45,6 @@ class WeatherData:
                 PRIMARY KEY (stationID,time),\
                 INDEX(stationID),\
                 INDEX(time),\
-                FOREIGN KEY (stationID) REFERENCES WeatherStations(id)\
                 );"
             cursor.execute(sql)
 

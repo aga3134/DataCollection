@@ -47,7 +47,6 @@ class EPAData:
                 PRIMARY KEY (siteName,time),\
                 INDEX(siteName),\
                 INDEX(time),\
-                FOREIGN KEY (siteName) REFERENCES EPASites(id)\
                 );"
             cursor.execute(sql)
 

@@ -37,7 +37,6 @@ class PowerData:
                 PRIMARY KEY (stationID,time),\
                 INDEX(stationID),\
                 INDEX(time),\
-                FOREIGN KEY (stationID) REFERENCES PowerStations(id)\
                 );"
             cursor.execute(sql)
             

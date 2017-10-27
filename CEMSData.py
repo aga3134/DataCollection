@@ -51,8 +51,6 @@ class CEMSData:
                 INDEX(c_no),\
                 INDEX(item),\
                 INDEX(time),\
-                FOREIGN KEY (c_no) REFERENCES CEMSComps(id),\
-                FOREIGN KEY (item) REFERENCES CEMSItems(id)\
                 );"
             cursor.execute(sql)
 
