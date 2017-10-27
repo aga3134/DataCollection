@@ -23,6 +23,10 @@ if __name__ == "__main__":
             password=auth["password"],db=auth["dbName"],
             charset='utf8',cursorclass=pymysql.cursors.DictCursor)
     
+    with connection.cursor() as cursor:
+        cursor.execute("SET NAMES utf8")
+    connection.commit()
+    
     epa = EPAData(connection)
     power = PowerData(connection)
     weather = WeatherData(connection,weatherKey)
