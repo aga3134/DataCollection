@@ -44,7 +44,7 @@ class WeatherData:
                 time DATETIME,\
                 PRIMARY KEY (stationID,time),\
                 INDEX(stationID),\
-                INDEX(time),\
+                INDEX(time)\
                 );"
             cursor.execute(sql)
 

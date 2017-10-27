@@ -46,7 +46,7 @@ class EPAData:
                 time DATETIME,\
                 PRIMARY KEY (siteName,time),\
                 INDEX(siteName),\
-                INDEX(time),\
+                INDEX(time)\
                 );"
             cursor.execute(sql)
 

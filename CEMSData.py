@@ -50,7 +50,7 @@ class CEMSData:
                 PRIMARY KEY (c_no,p_no,item,time),\
                 INDEX(c_no),\
                 INDEX(item),\
-                INDEX(time),\
+                INDEX(time)\
                 );"
             cursor.execute(sql)
 

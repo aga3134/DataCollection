@@ -38,7 +38,7 @@ class TrafficData:
                 PRIMARY KEY (siteID,type,time),\
                 INDEX(siteID),\
                 INDEX(type),\
-                INDEX(time),\
+                INDEX(time)\
                 );"
             cursor.execute(sql)
 
