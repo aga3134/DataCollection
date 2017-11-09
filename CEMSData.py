@@ -35,8 +35,6 @@ class CEMSData:
                 name VARCHAR(255),\
                 desp VARCHAR(255),\
                 unit VARCHAR(255),\
-                amount INT,\
-                time DATETIME,\
                 PRIMARY KEY (id)\
                 );"
             cursor.execute(sql)
@@ -47,15 +45,174 @@ class CEMSData:
                 item VARCHAR(255),\
                 value FLOAT,\
                 time DATETIME,\
+                statusCode VARCHAR(5),\
                 PRIMARY KEY (c_no,p_no,item,time),\
                 INDEX(c_no),\
                 INDEX(item),\
                 INDEX(time)\
                 );"
             cursor.execute(sql)
+            
+            sql = "CREATE TABLE IF NOT EXISTS CEMSStd (\
+                c_no VARCHAR(255),\
+                p_no VARCHAR(255),\
+                item VARCHAR(255),\
+                std VARCHAR(255),\
+                desp VARCHAR(255),\
+                PRIMARY KEY (c_no,p_no,item),\
+                INDEX(c_no),\
+                INDEX(item)\
+                );"
+            cursor.execute(sql)
+            
+            sql = "CREATE TABLE IF NOT EXISTS CEMSStatus (\
+                statusCode VARCHAR(5),\
+                desp VARCHAR(255),\
+                PRIMARY KEY (statusCode)\
+                );"
+            cursor.execute(sql)
 
         self.connection.commit()
         
+    def ExtractCEMSData(self,data):
+        d = {}
+        d["c_no"] = data["CNO"]
+        d["p_no"] = data["PolNo"]
+        d["item"] = data["Item"]
+        d["value"] = data["M_Val"]
+        d["time"] = data["M_Time"]
+        d["statusCode"] = data["Code2"]
+        return d
+    
+    def ExtractCEMSComp(self,data):
+        comp = {}
+        comp["id"] = data["CNO"]
+        comp["name"] = data["Abbr"]
+        comp["city"] = data["Epb"]
+        #lat,lng,addr從teds資料取得
+        return comp
+    
+    def ExtractCEMSItem(self,data):
+        item = {}
+        item["id"] = data["Item"]
+        item["desp"] = data["ItemDesc"]
+        item["unit"] = data["Unit"]
+        #name手動設定
+        return item
+    
+    def ExtractCEMSStd(self,data):
+        std = {}
+        std["c_no"] = data["CNO"]
+        std["p_no"] = data["PolNo"]
+        std["item"] = data["Item"]
+        std["std"] = data["Std"]
+        std["desp"] = data["Std_s"]
+        return std    
+    
+    def ExtractCEMSStatus(self,data):
+        status = {}
+        status["statusCode"] = data["Code2"]
+        status["desp"] = data["Code2Desc"]
+        return status
+    
+    def CollectDataFromUrl(self, url, loopCollect):
+        skip = 0
+        fetchNum = 1000
+        dataExist = False
+        loop = True
+        while(loop and not dataExist):
+            dataUrl = url
+            dataUrl += "?$format=json&$orderby=M_Time%20desc&$skip="+str(skip)+"&$top="+str(fetchNum)
+            r = requests.get(dataUrl)
+            if r.status_code != requests.codes.all_okay:
+                return
+            
+            data = r.json()
+            with self.connection.cursor() as cursor:
+                dataArr = {}
+                compArr = {}
+                itemArr = {}
+                stdArr = {}
+                statusArr = {}
+                for d in data:
+                    dataID = d["CNO"]+d["PolNo"]+d["Item"]+d["M_Time"]
+                    compID = d["CNO"]
+                    itemID = d["Item"]
+                    stdID = d["CNO"]+d["PolNo"]+d["Item"]
+                    statusID = d["Code2"]
+                    dataArr[dataID] = self.ExtractCEMSData(d)
+                    compArr[compID] = self.ExtractCEMSComp(d)
+                    itemArr[itemID] = self.ExtractCEMSItem(d)
+                    stdArr[stdID] = self.ExtractCEMSStd(d)
+                    statusArr[statusID] = self.ExtractCEMSStatus(d)
+                    
+                #check最後一筆資料是否己存在資料庫，若己存在就不用再往下展開
+                lastData = self.ExtractCEMSData(data[len(data)-1])
+                sql = "SELECT * FROM CEMSData WHERE c_no='"+lastData["c_no"]+"'"
+                sql += "AND p_no='"+lastData["p_no"]+"'"
+                sql += "AND item='"+lastData["item"]+"'"
+                sql += "AND time='"+lastData["time"]+"'"
+                cursor.execute(sql)
+                row = cursor.fetchone()
+                if row:
+                    dataExist = True
+                    
+                #加入資料到資料庫
+                field = "c_no,p_no,item,value,time,statusCode"
+                keyStr = "c_no,p_no,item,value,time,statusCode"
+                for key in dataArr:
+                    val = util.GenValue(dataArr[key],keyStr)
+                    sql = "INSERT IGNORE INTO CEMSData ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                
+                field = "id,name,city"
+                keyStr = "id,name,city"
+                for key in compArr:
+                    val = util.GenValue(compArr[key],keyStr)
+                    sql = "INSERT IGNORE INTO CEMSComps ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                    
+                field = "id,desp,unit"
+                keyStr = "id,desp,unit"
+                for key in itemArr:
+                    val = util.GenValue(itemArr[key],keyStr)
+                    sql = "INSERT IGNORE INTO CEMSItems ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                    
+                field = "c_no,p_no,item,std,desp"
+                keyStr = "c_no,p_no,item,std,desp"
+                for key in stdArr:
+                    val = util.GenValue(stdArr[key],keyStr)
+                    sql = "INSERT IGNORE INTO CEMSStd ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                    
+                field = "statusCode,desp"
+                keyStr = "statusCode,desp"
+                for key in statusArr:
+                    val = util.GenValue(statusArr[key],keyStr)
+                    sql = "INSERT IGNORE INTO CEMSStatus ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                
+            self.connection.commit()
+            
+            #展開下fetchNum筆資料
+            skip += fetchNum
+            loop = loopCollect
+                
+        
+    def CollectData6min(self, loopCollect):
+        print("Collect CEMS Data 6min")
+        self.CollectDataFromUrl("http://opendata.epa.gov.tw/ws/Data/POP00048/",loopCollect);
+        
+    def CollectData15min(self, loopCollect):
+        print("Collect CEMS Data 15min")
+        self.CollectDataFromUrl("http://opendata.epa.gov.tw/ws/Data/POP00049/",loopCollect);
+        
+    def CollectData1hour(self, loopCollect):
+        print("Collect CEMS Data 1hour")
+        self.CollectDataFromUrl("http://opendata.epa.gov.tw/ws/Data/POP00053/",loopCollect);
+        
+            
     def AddComp(self):
         print("Add Company for CEMS Data")
         r = requests.get("http://ks-opendata-community.github.io/chimney/data/工廠清單.json")
@@ -86,7 +243,7 @@ class CEMSData:
                 
             self.connection.commit()
         
-    def CollectData(self):
+    """def CollectData(self):
         #取前一天的統計資料
         now = datetime.datetime.now()
         yestoday = now + datetime.timedelta(days=-1)
@@ -140,6 +297,6 @@ class CEMSData:
                         cursor.execute(sql)
                     
                 self.connection.commit()
-            
+            """
         
         

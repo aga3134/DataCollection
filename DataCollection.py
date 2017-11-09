@@ -43,6 +43,10 @@ if __name__ == "__main__":
             cems.CreateTable()
             cems.AddComp()
             cems.AddItem()
+            
+        loopCollect = False
+        if "loopCollect" in args:
+            loopCollect = True
         
         if "epa" in args:
             epa.CollectData()
@@ -52,8 +56,12 @@ if __name__ == "__main__":
             weather.CollectData()
         if "traffic" in args:
             traffic.CollectData()
-        if "cems" in args:
-            cems.CollectData()
+        if "cems6min" in args:
+            cems.CollectData6min(loopCollect)
+        if "cems15min" in args:
+            cems.CollectData15min(loopCollect)
+        if "cems1hour" in args:
+            cems.CollectData1hour(loopCollect)
     
     #1小時1筆
     #epa = EPAData(connection)
