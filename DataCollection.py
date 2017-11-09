@@ -14,11 +14,13 @@ from PowerData import PowerData
 from WeatherData import WeatherData
 from TrafficData import TrafficData
 from CEMSData import CEMSData
+from CEMSAddr import CEMSAddr
 
 if __name__ == "__main__":
     config = json.loads(open("config.json").read())
     auth = config["mysqlAuth"]
     weatherKey = config["weatherKey"]
+    googleMapKey = config["googleMapKey"]
     connection = pymysql.connect(host=auth["host"],user=auth["username"],
             password=auth["password"],db=auth["dbName"],
             charset='utf8',cursorclass=pymysql.cursors.DictCursor)
@@ -28,6 +30,7 @@ if __name__ == "__main__":
     weather = WeatherData(connection,weatherKey)
     traffic = TrafficData(connection)
     cems = CEMSData(connection)
+    cemsAddr = CEMSAddr(connection,googleMapKey)
     
     #ignore warning message
     with warnings.catch_warnings():
@@ -62,6 +65,8 @@ if __name__ == "__main__":
             cems.CollectData15min(loopCollect)
         if "cems1hour" in args:
             cems.CollectData1hour(loopCollect)
+        if "addr" in args:
+            cemsAddr.UpdateAddress()
     
     #1小時1筆
     #epa = EPAData(connection)

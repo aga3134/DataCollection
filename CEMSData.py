@@ -76,42 +76,42 @@ class CEMSData:
         
     def ExtractCEMSData(self,data):
         d = {}
-        d["c_no"] = data["CNO"]
-        d["p_no"] = data["PolNo"]
-        d["item"] = data["Item"]
+        d["c_no"] = data["CNO"].strip()
+        d["p_no"] = data["PolNo"].strip()
+        d["item"] = data["Item"].strip()
         d["value"] = data["M_Val"]
         d["time"] = data["M_Time"]
-        d["statusCode"] = data["Code2"]
+        d["statusCode"] = data["Code2"].strip()
         return d
     
     def ExtractCEMSComp(self,data):
         comp = {}
-        comp["id"] = data["CNO"]
+        comp["id"] = data["CNO"].strip()
         comp["name"] = data["Abbr"]
-        comp["city"] = data["Epb"]
-        #lat,lng,addr從teds資料取得
+        comp["city"] = data["Epb"].strip()
+        #lat,lng,addr用google geocoding api更新
         return comp
     
     def ExtractCEMSItem(self,data):
         item = {}
-        item["id"] = data["Item"]
+        item["id"] = data["Item"].strip()
         item["desp"] = data["ItemDesc"]
-        item["unit"] = data["Unit"]
+        item["unit"] = data["Unit"].strip()
         #name手動設定
         return item
     
     def ExtractCEMSStd(self,data):
         std = {}
-        std["c_no"] = data["CNO"]
-        std["p_no"] = data["PolNo"]
-        std["item"] = data["Item"]
+        std["c_no"] = data["CNO"].strip()
+        std["p_no"] = data["PolNo"].strip()
+        std["item"] = data["Item"].strip()
         std["std"] = data["Std"]
         std["desp"] = data["Std_s"]
         return std    
     
     def ExtractCEMSStatus(self,data):
         status = {}
-        status["statusCode"] = data["Code2"]
+        status["statusCode"] = data["Code2"].strip()
         status["desp"] = data["Code2Desc"]
         return status
     
@@ -123,6 +123,7 @@ class CEMSData:
         while(loop and not dataExist):
             dataUrl = url
             dataUrl += "?$format=json&$orderby=M_Time%20desc&$skip="+str(skip)+"&$top="+str(fetchNum)
+            #print(dataUrl)
             r = requests.get(dataUrl)
             if r.status_code != requests.codes.all_okay:
                 return
