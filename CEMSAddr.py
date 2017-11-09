@@ -41,10 +41,9 @@ class CEMSAddr:
             results = cursor.fetchall()
             for row in results:
                 name = row["name"]
-                url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-                url += "?query="+name
+                url = "https://maps.googleapis.com/maps/api/place/textsearch/json?language=zh-TW"
+                url += "&query="+name
                 url += "&key="+self.key
-                url += "&language=	zh-TW"
                 r = requests.get(url)
                 if r.status_code == requests.codes.all_okay:
                     data = r.json()
