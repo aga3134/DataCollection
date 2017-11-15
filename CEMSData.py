@@ -123,9 +123,11 @@ class CEMSData:
         while(loop and not dataExist):
             dataUrl = url
             dataUrl += "?$format=json&$orderby=M_Time%20desc&$skip="+str(skip)+"&$top="+str(fetchNum)
-            #print(dataUrl)
+            
             r = requests.get(dataUrl)
             if r.status_code != requests.codes.all_okay:
+                print(dataUrl)
+                print("get data error: "+r.status_code)
                 return
             
             data = r.json()
