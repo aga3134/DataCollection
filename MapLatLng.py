@@ -5,17 +5,38 @@ Created on Mon Oct 23 11:38:01 2017
 @author: aga
 """
 
+import json
 import requests
 import DataCollectUtil as util
 import xml.etree.ElementTree as ET
 
-class CEMSAddr:
+class MapLatLng:
     def __init__(self, connection, apiKey):
         self.connection = connection
         self.key = apiKey
+        
+    def UpdateLocation(self):
+        self.UpdatePowerLocation()
+        self.UpdateCEMSLocation()
+        
+    def UpdatePowerLocation(self):
+        print("Update Power Location")
+        powerStation = json.loads(open("powerStation.json",encoding="utf8").read())
+        
+        with self.connection.cursor() as cursor:
+            station = powerStation["station"]
+            for s in station:
+                name = s["name"]
+                lat = s["lat"]
+                lng = s["lng"]
+                sql = "UPDATE PowerStations SET lat=%s, lng=%s WHERE name=%s"
+                cursor.execute(sql,(lat,lng,name))
+                
+        self.connection.commit()
+            
       
-    def UpdateAddress(self):
-        print("Update CEMS Address")
+    def UpdateCEMSLocation(self):
+        print("Update CEMS Location")
         
         with self.connection.cursor() as cursor:
             #update city code to name

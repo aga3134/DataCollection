@@ -14,7 +14,7 @@ from PowerData import PowerData
 from WeatherData import WeatherData
 from TrafficData import TrafficData
 from CEMSData import CEMSData
-from CEMSAddr import CEMSAddr
+from MapLatLng import MapLatLng
 
 if __name__ == "__main__":
     config = json.loads(open("config.json").read())
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     weather = WeatherData(connection,weatherKey)
     traffic = TrafficData(connection)
     cems = CEMSData(connection)
-    cemsAddr = CEMSAddr(connection,googleMapKey)
+    mapLatLng = MapLatLng(connection,googleMapKey)
     
     #ignore warning message
     with warnings.catch_warnings():
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         if "cems1hour" in args:
             cems.CollectData1hour(loopCollect)
         if "addr" in args:
-            cemsAddr.UpdateAddress()
+            mapLatLng.UpdateLocation()
     
     #1小時1筆
     #epa = EPAData(connection)
