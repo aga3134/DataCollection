@@ -11,6 +11,7 @@ import datetime
 import pytz
 import DataCollectUtil as util
 import xml.etree.ElementTree as ET
+import math
 
 class WeatherData:
     def __init__(self, connection, key):
@@ -45,6 +46,28 @@ class WeatherData:
                 PRIMARY KEY (stationID,time),\
                 INDEX(stationID),\
                 INDEX(time)\
+                );"
+            cursor.execute(sql)
+            
+            sql = "CREATE TABLE IF NOT EXISTS cwb_DATA (\
+                year int(4),\
+                month int(4),\
+                day int(2),\
+                hour int(2),\
+                date datetime,\
+                station_id VARCHAR(255),\
+                ELEV decimal(10,2),\
+                WDIR decimal(10,2),\
+                WDSD decimal(10,2),\
+                TEMP decimal(10,2),\
+                HUMD decimal(10,2),\
+                PRES decimal(10,2),\
+                24R decimal(10,2),\
+                u decimal(10,5),\
+                v decimal(10,5),\
+                PRIMARY KEY (year,month,day,hour,date,station_id),\
+                INDEX(station_id),\
+                INDEX(date)\
                 );"
             cursor.execute(sql)
 
@@ -114,5 +137,54 @@ class WeatherData:
                 
             self.connection.commit()
             
+    def CollectDataNCHU(self):
+        print("Collect Weather Data NCHU")
+        r = requests.get("http://opendata.cwb.gov.tw/opendataapi?dataid=O-A0001-001&authorizationkey="+self.key)
+        #r.encoding = "utf-8"
+        if r.status_code == requests.codes.all_okay:
+            root = ET.fromstring(r.text)
+            pos = root.tag.find("}")
+            ns = root.tag[:pos+1]
         
-        
+            stationArr = []
+            dataArr = []
+            for location in root.findall(ns+'location'):
+                data = {}
+                dateStr = location.find(ns+"time").find(ns+"obsTime").text
+                dateStr = ''.join(dateStr.rsplit(':', 1))   #去掉時區的:
+                dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%dT%H:%M:%S%z")
+                oneMinAgo = dateObj - datetime.timedelta(minutes=1)
+                data["date"] = oneMinAgo.strftime('%Y-%m-%d %H:%M:%S')
+                data["year"] = oneMinAgo.year
+                data["month"] = oneMinAgo.month
+                data["day"] = oneMinAgo.day
+                data["hour"] = oneMinAgo.hour
+                data["station_id"] = location.find(ns+"stationId").text
+                for elem in location.findall(ns+"weatherElement"):
+                    if(elem[0].text == "ELEV"):
+                        data["ELEV"] = float(elem[1][0].text)
+                    elif(elem[0].text == "WDIR"):
+                        data["WDIR"] = float(elem[1][0].text)
+                    elif(elem[0].text == "WDSD"):
+                        data["WDSD"] = float(elem[1][0].text)
+                    elif(elem[0].text == "TEMP"):
+                        data["TEMP"] = float(elem[1][0].text)+ 273.15
+                    elif(elem[0].text == "HUMD"):
+                        data["HUMD"] = float(elem[1][0].text)*100
+                    elif(elem[0].text == "PRES"):
+                        data["PRES"] = float(elem[1][0].text)*100
+                    elif(elem[0].text == "H_24R"):
+                        data["24R"] = elem[1][0].text
+                data["u"] = (-1)*data["WDSD"]*math.sin(data["WDIR"]/180*3.1415926)
+                data["v"] = (-1)*data["WDSD"]*math.cos(data["WDIR"]/180*3.1415926)
+                dataArr.append(data)
+       
+            field = "year,month,day,hour,date,station_id,ELEV,WDIR,WDSD,TEMP,HUMD,PRES,24R,u,v"
+            keyStr = "year,month,day,hour,date,station_id,ELEV,WDIR,WDSD,TEMP,HUMD,PRES,24R,u,v"
+            for data in dataArr:
+                val = util.GenValue(data,keyStr)
+                with self.connection.cursor() as cursor:
+                    sql = "INSERT IGNORE INTO cwb_DATA ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+                
+            self.connection.commit()

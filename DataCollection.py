@@ -53,10 +53,12 @@ if __name__ == "__main__":
         
         if "epa" in args:
             epa.CollectData()
+            epa.CollectDataNCHU()
         if "power" in args:
             power.CollectData()
         if "weather" in args:
             weather.CollectData()
+            weather.CollectDataNCHU()
         if "traffic" in args:
             traffic.CollectData()
         if "cems6min" in args:
