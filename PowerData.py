@@ -73,7 +73,7 @@ class PowerData:
         
     def CollectPowerGen(self):
         print("Collect Power Generation")
-        r = requests.get("http://www.taipower.com.tw/loadGraph/loadGraph/data/genary.txt")
+        r = requests.get("http://stpc00601.taipower.com.tw/loadGraph/loadGraph/data/genary.txt")
         r.encoding = "utf-8"
         if r.status_code == requests.codes.all_okay:
             txt = "{\"time"+r.text[2:]

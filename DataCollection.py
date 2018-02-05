@@ -67,6 +67,7 @@ if __name__ == "__main__":
             cems.CollectData15min(loopCollect)
         if "cems1hour" in args:
             cems.CollectData1hour(loopCollect)
+            #cems.UpdateEmissionNCHU()
         if "addr" in args:
             mapLatLng.UpdateLocation()
     

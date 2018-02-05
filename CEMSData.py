@@ -71,6 +71,35 @@ class CEMSData:
                 PRIMARY KEY (statusCode)\
                 );"
             cursor.execute(sql)
+            
+            sql = "CREATE TABLE IF NOT EXISTS CEMS_Emission (\
+                year smallint(6),\
+                month smallint(6),\
+                day smallint(6),\
+                hour smallint(6),\
+                dateTime datetime,\
+                c_no varchar(8),\
+                p_no varchar(8),\
+                lon varchar(8),\
+                lat varchar(8),\
+                ts int(11),\
+                vs double(8,4),\
+                ds double(8,4),\
+                hs double(8,4),\
+                EMI_SOx double(12,8),\
+                EMI_NOx double(12,8),\
+                EMI_PMf double(12,8),\
+                EMI_PMc double(12,8),\
+                EMI_NH3 double(12,8),\
+                EMI_CO double(12,8),\
+                EMI_CH4 double(12,8),\
+                EMI_NMHC double(12,8),\
+                statusCode double(4,0),\
+                PRIMARY KEY (year,month,day,hour,dateTime,c_no,p_no),\
+                INDEX(dateTime),\
+                INDEX(c_no,p_no)\
+                );"
+            cursor.execute(sql)
 
         self.connection.commit()
         
@@ -114,6 +143,81 @@ class CEMSData:
         status["statusCode"] = data["Code2"].strip()
         status["desp"] = data["Code2Desc"]
         return status
+    
+    def UpdateEmissionNCHU(self):
+        #取得最新一小時的資料
+        dataArr = None
+        time = None
+        with self.connection.cursor() as cursor:
+            sql = "select time from CEMSData order by time desc limit 1"
+            cursor.execute(sql)
+            time = str(cursor.fetchone()["time"])
+            sql = "select * from CEMSData where time='"+time+"'"
+            cursor.execute(sql)
+            dataArr = cursor.fetchall()
+          
+        #先取得temperature和flow才能算排放量
+        record = {}
+        for d in dataArr:
+            key = d["c_no"]+"_"+d["p_no"]
+            if key not in record:
+                record[key] = {"statusCode":""}
+                
+            if d["item"] == "259":    #temp
+                record[key]["ts"] = float(d["value"])
+            elif d["item"] == "248":  #flow
+                record[key]["vs"] = float(d["value"])
+            
+        #計算排放量
+        for d in dataArr:
+            key = d["c_no"]+"_"+d["p_no"]
+            #無temp跟flow無法計算排放量
+            if "ts" not in record[key] or "vs" not in record[key]:
+                continue
+            
+            v = float(d["value"])
+            TEMP = record[key]["ts"]
+            FLOW = record[key]["vs"]
+            
+            if d["item"] == "222":    #SOX
+                record[key]["EMI_SOx"] = v*64*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
+            elif d["item"] == "223":  #NOx
+                record[key]["EMI_NOx"] = v*46*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
+            elif d["item"] == "224":  #CO
+                record[key]["EMI_CO"] = v*28*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
+            elif d["item"] == "227":  #VOC
+                record[key]["EMI_CH4"] = v*16*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
+            record[key]["statusCode"] = record[key]["statusCode"]
+            
+        #get company lat lng
+        compArr = {}
+        with self.connection.cursor() as cursor:
+            sql = "select id,lat,lng from CEMSComps"
+            cursor.execute(sql)
+            compData = cursor.fetchall()
+            for row in compData:
+                compArr[row["id"]] = row
+            
+        dateObj = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+        for key in record:
+            d = record[key]
+            if "ts" not in d or "vs" not in d:
+                continue
+            
+            d["year"] = dateObj.year
+            d["month"] = dateObj.month
+            d["day"] = dateObj.day
+            d["hour"] = dateObj.hour
+            d["dateTime"] = time
+            splitKey = key.split("_")
+            d["c_no"] = splitKey[0]
+            d["p_no"] = splitKey[1]
+            if d["c_no"] not in compArr:
+                continue
+            d["lat"] = str(compArr[d["c_no"]]["lat"])
+            d["lon"] = str(compArr[d["c_no"]]["lng"])
+            print(d)
+        
     
     def CollectDataFromUrl(self, url, loopCollect):
         skip = 0
