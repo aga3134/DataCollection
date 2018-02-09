@@ -129,7 +129,7 @@ class PowerData:
         #loadareas資料在凌晨12點取時會得到前一天的完整資料，往前調10分鐘確保取到正確日期
         date = datetime.datetime.strftime(self.Get10minBefore(), '%Y-%m-%d')
         
-        r = requests.get("http://www.taipower.com.tw/loadGraph/loadGraph/data/loadareas.csv")
+        r = requests.get("https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/loadareas.csv")
         if r.status_code == requests.codes.all_okay:
             arr = r.text.split("\n")
             field = "time,east,south,central,north"
