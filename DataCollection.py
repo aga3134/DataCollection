@@ -52,24 +52,48 @@ if __name__ == "__main__":
             loopCollect = True
         
         if "epa" in args:
-            epa.CollectData()
-            epa.CollectDataNCHU()
+            try:
+                epa.CollectData()
+                epa.CollectDataNCHU()
+            except:
+                print(sys.exc_info()[0])
         if "power" in args:
-            power.CollectData()
+            try:
+                power.CollectData()
+            except:
+                print(sys.exc_info()[0])
         if "weather" in args:
-            weather.CollectData()
-            weather.CollectDataNCHU()
+            try:
+                weather.CollectData()
+                weather.CollectDataNCHU()
+            except:
+                print(sys.exc_info()[0])
         if "traffic" in args:
-            traffic.CollectData()
+            try:
+                traffic.CollectData()
+            except:
+                print(sys.exc_info()[0])
         if "cems6min" in args:
-            cems.CollectData6min(loopCollect)
+            try:
+                cems.CollectData6min(loopCollect)
+            except:
+                print(sys.exc_info()[0])
         if "cems15min" in args:
-            cems.CollectData15min(loopCollect)
+            try:
+                cems.CollectData15min(loopCollect)
+            except:
+                print(sys.exc_info()[0])
         if "cems1hour" in args:
-            cems.CollectData1hour(loopCollect)
-            #cems.UpdateEmissionNCHU()
+            try:
+                cems.CollectData1hour(loopCollect)
+                #cems.UpdateEmissionNCHU()
+            except:
+                print(sys.exc_info()[0])
         if "addr" in args:
-            mapLatLng.UpdateLocation()
+            try:
+                mapLatLng.UpdateLocation()
+            except:
+                print(sys.exc_info()[0])
     
     #1小時1筆
     #epa = EPAData(connection)
