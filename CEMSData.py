@@ -72,7 +72,7 @@ class CEMSData:
                 );"
             cursor.execute(sql)
             
-            sql = "CREATE TABLE IF NOT EXISTS CEMS_Emission (\
+            sql = "CREATE TABLE IF NOT EXISTS CEMSEmissionCompute (\
                 year smallint(6),\
                 month smallint(6),\
                 day smallint(6),\
@@ -82,10 +82,6 @@ class CEMSData:
                 p_no varchar(8),\
                 lon varchar(8),\
                 lat varchar(8),\
-                ts int(11),\
-                vs double(8,4),\
-                ds double(8,4),\
-                hs double(8,4),\
                 EMI_SOx double(12,8),\
                 EMI_NOx double(12,8),\
                 EMI_PMf double(12,8),\
@@ -94,7 +90,32 @@ class CEMSData:
                 EMI_CO double(12,8),\
                 EMI_CH4 double(12,8),\
                 EMI_NMHC double(12,8),\
-                statusCode double(4,0),\
+                value_OPC double(12,8),\
+                value_SOX double(12,8),\
+                value_NOX double(12,8),\
+                value_CO double(12,8),\
+                value_TRS double(12,8),\
+                value_HCL double(12,8),\
+                value_VOC double(12,8),\
+                value_NMHC double(12,8),\
+                value_O2 double(12,8),\
+                value_CO2 double(12,8),\
+                value_FLOW double(12,8),\
+                value_TEMP double(12,8),\
+                value_CMH double(12,8),\
+                status_OPC varchar(5),\
+                status_SOX varchar(5),\
+                status_NOX varchar(5),\
+                status_CO varchar(5),\
+                status_TRS varchar(5),\
+                status_HCL varchar(5),\
+                status_VOC varchar(5),\
+                status_NMHC varchar(5),\
+                status_O2 varchar(5),\
+                status_CO2 varchar(5),\
+                status_FLOW varchar(5),\
+                status_TEMP varchar(5),\
+                status_CMH varchar(5),\
                 PRIMARY KEY (year,month,day,hour,dateTime,c_no,p_no),\
                 INDEX(dateTime),\
                 INDEX(c_no,p_no)\
@@ -156,28 +177,63 @@ class CEMSData:
             cursor.execute(sql)
             dataArr = cursor.fetchall()
           
-        #先取得temperature和flow才能算排放量
+        #先取得各item的value跟status
         record = {}
         for d in dataArr:
             key = d["c_no"]+"_"+d["p_no"]
             if key not in record:
-                record[key] = {"statusCode":""}
+                record[key] = {}
                 
-            if d["item"] == "259":    #temp
-                record[key]["ts"] = float(d["value"])
-            elif d["item"] == "248":  #flow
-                record[key]["vs"] = float(d["value"])
+            if d["item"] == "211":    #avg OPC
+                record[key]["value_OPC"] = float(d["value"])
+                record[key]["status_OPC"] = d["statusCode"]
+            elif d["item"] == "222":    #avg SOX
+                record[key]["value_SOX"] = float(d["value"])
+                record[key]["status_SOX"] = d["statusCode"]
+            elif d["item"] == "223":    #avg NOX
+                record[key]["value_NOX"] = float(d["value"])
+                record[key]["status_NOX"] = d["statusCode"]
+            elif d["item"] == "224":    #avg CO
+                record[key]["value_CO"] = float(d["value"])
+                record[key]["status_CO"] = d["statusCode"]
+            elif d["item"] == "225":    #avg TRS
+                record[key]["value_TRS"] = float(d["value"])
+                record[key]["status_TRS"] = d["statusCode"]
+            elif d["item"] == "226":    #avg HCL
+                record[key]["value_HCL"] = float(d["value"])
+                record[key]["status_HCL"] = d["statusCode"]
+            elif d["item"] == "227":    #avg VOC
+                record[key]["value_VOC"] = float(d["value"])
+                record[key]["status_VOC"] = d["statusCode"]
+            elif d["item"] == "228":    #avg NMHC
+                record[key]["value_NMHC"] = float(d["value"])
+                record[key]["status_NMHC"] = d["statusCode"]
+            elif d["item"] == "236":    #avg O2
+                record[key]["value_O2"] = float(d["value"])
+                record[key]["status_O2"] = d["statusCode"]
+            elif d["item"] == "237":    #avg CO2
+                record[key]["value_CO2"] = float(d["value"])
+                record[key]["status_CO2"] = d["statusCode"]
+            elif d["item"] == "248":  #avg flow
+                record[key]["value_FLOW"] = float(d["value"])
+                record[key]["status_FLOW"] = d["statusCode"]
+            elif d["item"] == "259":    #avg temp
+                record[key]["value_TEMP"] = float(d["value"])
+                record[key]["status_TEMP"] = d["statusCode"]
+            elif d["item"] == "280":    #avg CMH
+                record[key]["value_CMH"] = float(d["value"])
+                record[key]["status_CMH"] = d["statusCode"]
             
         #計算排放量
         for d in dataArr:
             key = d["c_no"]+"_"+d["p_no"]
             #無temp跟flow無法計算排放量
-            if "ts" not in record[key] or "vs" not in record[key]:
+            if "value_TEMP" not in record[key] or "value_FLOW" not in record[key]:
                 continue
             
             v = float(d["value"])
-            TEMP = record[key]["ts"]
-            FLOW = record[key]["vs"]
+            TEMP = record[key]["value_TEMP"]
+            FLOW = record[key]["value_FLOW"]
             
             if d["item"] == "222":    #SOX
                 record[key]["EMI_SOx"] = v*64*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
@@ -187,7 +243,6 @@ class CEMSData:
                 record[key]["EMI_CO"] = v*28*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
             elif d["item"] == "227":  #VOC
                 record[key]["EMI_CH4"] = v*16*273/22.4/(273+TEMP)/1000*FLOW/1000/1000
-            record[key]["statusCode"] = record[key]["statusCode"]
             
         #get company lat lng
         compArr = {}
@@ -201,8 +256,6 @@ class CEMSData:
         dateObj = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         for key in record:
             d = record[key]
-            if "ts" not in d or "vs" not in d:
-                continue
             
             d["year"] = dateObj.year
             d["month"] = dateObj.month
@@ -216,7 +269,13 @@ class CEMSData:
                 continue
             d["lat"] = str(compArr[d["c_no"]]["lat"])
             d["lon"] = str(compArr[d["c_no"]]["lng"])
-            print(d)
+            
+            #加入資料到資料庫
+            #print(d)
+            util.DataToDB(self.connection,"CEMSEmissionCompute",d)
+            
+        self.connection.commit()
+
         
     
     def CollectDataFromUrl(self, url, loopCollect):

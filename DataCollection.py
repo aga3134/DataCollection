@@ -15,6 +15,7 @@ from WeatherData import WeatherData
 from TrafficData import TrafficData
 from CEMSData import CEMSData
 from MapLatLng import MapLatLng
+import traceback
 
 if __name__ == "__main__":
     config = json.loads(open("config.json").read())
@@ -57,71 +58,51 @@ if __name__ == "__main__":
                 epa.CollectDataNCHU()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "power" in args:
             try:
                 power.CollectData()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "weather" in args:
             try:
                 weather.CollectData()
                 weather.CollectDataNCHU()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "traffic" in args:
             try:
                 traffic.CollectData()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "cems6min" in args:
             try:
                 cems.CollectData6min(loopCollect)
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "cems15min" in args:
             try:
                 cems.CollectData15min(loopCollect)
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "cems1hour" in args:
             try:
                 cems.CollectData1hour(loopCollect)
-                #cems.UpdateEmissionNCHU()
+                cems.UpdateEmissionNCHU()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
         if "addr" in args:
             try:
                 mapLatLng.UpdateLocation()
             except:
                 print(sys.exc_info()[0])
+                traceback.print_exc()
     
-    #1小時1筆
-    #epa = EPAData(connection)
-    #epa.CreateTable()
-    #epa.AddSite()
-    #epa.CollectData()
-    
-    #10分鐘1筆
-    #power = PowerData(connection)
-    #power.CreateTable()
-    #power.CollectData()
-    
-    #1小時1筆
-    #weather = WeatherData(connection)
-    #weather.CreateTable()
-    #weather.CollectData()
-    
-    #5分鐘1筆
-    #traffic = TrafficData(connection)
-    #traffic.CreateTable()
-    #traffic.AddSite()
-    #traffic.CollectData()
-    
-    #一天取一次資料
-    #cems = CEMSData(connection)
-    #cems.CreateTable()
-    #cems.AddComp()
-    #cems.AddItem()
-    #cems.CollectData()
     
     connection.close()
