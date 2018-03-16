@@ -173,14 +173,18 @@ class CEMSData:
             sql = "select time from CEMSData order by time desc limit 1"
             cursor.execute(sql)
             time = str(cursor.fetchone()["time"])
-            sql = "select * from CEMSData where time='"+time+"'"
+            #取最新資料到往前6小時的區間做更新
+            dt = datetime.datetime.strptime(time,'%Y-%m-%d %H:%M:%S')
+            st = dt - datetime.timedelta(hours=6)
+            startTime = st.strftime('%Y-%m-%d %H:%M:%S')
+            sql = "select * from CEMSData where time between '"+startTime+"' and '"+time+"'"
             cursor.execute(sql)
             dataArr = cursor.fetchall()
           
         #先取得各item的value跟status
         record = {}
         for d in dataArr:
-            key = d["c_no"]+"_"+d["p_no"]
+            key = d["c_no"]+"_"+d["p_no"]+"_"+d["time"].strftime('%Y-%m-%d %H:%M:%S')
             if key not in record:
                 record[key] = {}
                 
@@ -226,7 +230,7 @@ class CEMSData:
             
         #計算排放量
         for d in dataArr:
-            key = d["c_no"]+"_"+d["p_no"]
+            key = d["c_no"]+"_"+d["p_no"]+"_"+d["time"].strftime('%Y-%m-%d %H:%M:%S')
             #無temp跟flow無法計算排放量
             if "value_TEMP" not in record[key] or "value_FLOW" not in record[key]:
                 continue
@@ -253,18 +257,19 @@ class CEMSData:
             for row in compData:
                 compArr[row["id"]] = row
             
-        dateObj = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         for key in record:
             d = record[key]
             
+            splitKey = key.split("_")
+            d["c_no"] = splitKey[0]
+            d["p_no"] = splitKey[1]
+            dateObj = datetime.datetime.strptime(splitKey[2], "%Y-%m-%d %H:%M:%S")
             d["year"] = dateObj.year
             d["month"] = dateObj.month
             d["day"] = dateObj.day
             d["hour"] = dateObj.hour
-            d["dateTime"] = time
-            splitKey = key.split("_")
-            d["c_no"] = splitKey[0]
-            d["p_no"] = splitKey[1]
+            d["dateTime"] = splitKey[2]
+            
             if d["c_no"] not in compArr:
                 continue
             d["lat"] = str(compArr[d["c_no"]]["lat"])
