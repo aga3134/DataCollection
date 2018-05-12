@@ -73,7 +73,7 @@ class PowerData:
         
     def CollectPowerGen(self):
         print("Collect Power Generation")
-        r = requests.get("http://stpc00601.taipower.com.tw/loadGraph/loadGraph/data/genary.txt")
+        r = requests.get("https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/genary.txt")
         r.encoding = "utf-8"
         if r.status_code == requests.codes.all_okay:
             txt = "{\"time"+r.text[2:]
@@ -158,7 +158,7 @@ class PowerData:
         #loadareas資料在凌晨12點取時會得到前一天的完整資料，往前調10分鐘確保取到正確日期
         date = datetime.datetime.strftime(self.Get10minBefore(), '%Y-%m-%d')
         
-        r = requests.get("http://stpc00601.taipower.com.tw/loadGraph/loadGraph/data/loadfueltype.csv")
+        r = requests.get("https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/loadfueltype.csv")
         if r.status_code == requests.codes.all_okay:
             arr = r.text.split("\n")
             field = "time,nuclear,coal,coGen,ippCoal,lng,ippLng,oil,diesel,hydro,wind,solar,pumpGen,pumpLoad"
