@@ -75,7 +75,7 @@ class WeatherData:
         
     def CollectData(self):
         print("Collect Weather Data")
-        r = requests.get("http://opendata.cwb.gov.tw/opendataapi?dataid=O-A0001-001&authorizationkey="+self.key)
+        r = requests.get("https://opendata.cwb.gov.tw/opendataapi?dataid=O-A0001-001&authorizationkey="+self.key)
         #r.encoding = "utf-8"
         if r.status_code == requests.codes.all_okay:
             root = ET.fromstring(r.text)
@@ -139,7 +139,7 @@ class WeatherData:
             
     def CollectDataNCHU(self):
         print("Collect Weather Data NCHU")
-        r = requests.get("http://opendata.cwb.gov.tw/opendataapi?dataid=O-A0001-001&authorizationkey="+self.key)
+        r = requests.get("https://opendata.cwb.gov.tw/opendataapi?dataid=O-A0001-001&authorizationkey="+self.key)
         #r.encoding = "utf-8"
         if r.status_code == requests.codes.all_okay:
             root = ET.fromstring(r.text)
