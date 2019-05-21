@@ -144,7 +144,7 @@ class EPAData:
                 v = float(s)
                 return v
             except ValueError:
-                return -1
+                return None
     
         print("Collect EPA Data NCHU")
         #fetch aqi sites
