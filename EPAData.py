@@ -142,9 +142,11 @@ class EPAData:
         def ToFloat(s):
             try:
                 v = float(s)
+                if v < 0:
+                    return "NULL"
                 return v
             except ValueError:
-                return None
+                return "NULL"
     
         print("Collect EPA Data NCHU")
         #fetch aqi sites
