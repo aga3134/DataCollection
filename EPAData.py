@@ -190,8 +190,12 @@ class EPAData:
                 data["NO2"] = ToFloat(record["NO2"])
                 data["wind"] = ToFloat(record["WindSpeed"])
                 data["wDir"] = ToFloat(record["WindDirec"])
-                data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
-                data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
+                if data["wind"] == "NULL" or data["wDir"] == "NULL":
+                    data["uGrd"] = "NULL"
+                    data["vGrd"] = "NULL"
+                else:
+                    data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
+                    data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
                 data["PMfCorr"] = ToFloat(record["PM2.5"])
                 
                 val = util.GenValue(data,keyStr)
