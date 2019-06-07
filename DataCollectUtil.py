@@ -16,6 +16,8 @@ def GenValue(record, keyStr):
         #字串
         if isinstance(value,str):
             val+="'"+value+"'"
+        elif value is None:
+            val+="NULL"
         else:   #數字
             val+=str(value)
         if i < n-1:
@@ -36,6 +38,13 @@ def VarifyValue(value):
         return value
     else:
         return 0
+    
+def PadLeft(value,ch,digit):
+    leftPad = ""
+    if len(value) < digit:
+        for i in range(digit-len(value)):
+            leftPad += ch
+    return leftPad + value
 
 def DataToDB(connection, table, d):
     field = ",".join(d.keys())

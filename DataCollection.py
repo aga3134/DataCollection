@@ -14,6 +14,8 @@ from PowerData import PowerData
 from WeatherData import WeatherData
 from TrafficData import TrafficData
 from CEMSData import CEMSData
+from BuoyData import BuoyData
+from EPBData import EPBData
 from MapLatLng import MapLatLng
 import traceback
 
@@ -31,6 +33,8 @@ if __name__ == "__main__":
     weather = WeatherData(connection,weatherKey)
     traffic = TrafficData(connection)
     cems = CEMSData(connection)
+    buoy = BuoyData(connection,weatherKey)
+    epb = EPBData(connection)
     mapLatLng = MapLatLng(connection,googleMapKey)
     
     #ignore warning message
@@ -47,6 +51,8 @@ if __name__ == "__main__":
             cems.CreateTable()
             cems.AddComp()
             cems.AddItem()
+            buoy.CreateTable()
+            epb.CreateTable()
             
         loopCollect = False
         if "loopCollect" in args:
@@ -100,6 +106,18 @@ if __name__ == "__main__":
         if "addr" in args:
             try:
                 mapLatLng.UpdateLocation()
+            except:
+                print(sys.exc_info()[0])
+                traceback.print_exc()
+        if "buoy" in args:
+            try:
+                buoy.CollectData()
+            except:
+                print(sys.exc_info()[0])
+                traceback.print_exc()
+        if "epb" in args:
+            try:
+                epb.CollectData()
             except:
                 print(sys.exc_info()[0])
                 traceback.print_exc()
