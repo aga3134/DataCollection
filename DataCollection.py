@@ -78,6 +78,12 @@ if __name__ == "__main__":
             except:
                 print(sys.exc_info()[0])
                 traceback.print_exc()
+        if "rain" in args:
+            try:
+                weather.CollectRain()
+            except:
+                print(sys.exc_info()[0])
+                traceback.print_exc()
         if "traffic" in args:
             try:
                 traffic.CollectData()

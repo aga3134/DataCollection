@@ -71,6 +71,38 @@ class WeatherData:
                 );"
             cursor.execute(sql)
 
+            sql = "CREATE TABLE IF NOT EXISTS auto_rain_station (\
+                stationId VARCHAR(255),\
+                locationName VARCHAR(255),\
+                lat FLOAT,\
+                lon FLOAT,\
+                CITY VARCHAR(255),\
+                CITY_SN VARCHAR(255),\
+                TOWN VARCHAR(255),\
+                TOWN_SN VARCHAR(255),\
+                ATTRIBUTE VARCHAR(255),\
+                PRIMARY KEY (stationId)\
+                );"
+            cursor.execute(sql)
+
+            sql = "CREATE TABLE IF NOT EXISTS auto_rain (\
+                stationId VARCHAR(255),\
+                time DATETIME,\
+                ELEV FLOAT,\
+                RAIN FLOAT,\
+                MIN_10 FLOAT,\
+                HOUR_3 FLOAT,\
+                HOUR_6 FLOAT,\
+                HOUR_12 FLOAT,\
+                HOUR_24 FLOAT,\
+                NOW FLOAT,\
+                latest_2days FLOAT,\
+                latest_3days FLOAT,\
+                PRIMARY KEY (stationId,time),\
+                INDEX(time)\
+                );"
+            cursor.execute(sql)
+
         self.connection.commit()
         
     def CollectData(self):
@@ -187,4 +219,41 @@ class WeatherData:
                     sql = "INSERT IGNORE INTO cwb_DATA ("+field+") VALUES ("+val+")"
                     cursor.execute(sql)
                 
+            self.connection.commit()
+
+    def CollectRain(self):
+        print("Collect rain data")
+        r = requests.get("https://opendata.cwb.gov.tw/fileapi/v1/opendataapi/O-A0002-001?format=JSON&Authorization="+self.key)
+        #r.encoding = "utf-8"
+        if r.status_code == requests.codes.all_okay:
+            data = json.loads(r.text)
+            for loc in data["cwbopendata"]["location"]:
+                site = {}
+                site["stationId"] = loc["stationId"]
+                site["locationName"] = loc["locationName"]
+                site["lat"] = float(loc["lat"])
+                site["lon"] = float(loc["lon"])
+                for param in loc["parameter"]:
+                    name = param["parameterName"]
+                    value = param["parameterValue"]
+                    site[name] = value
+
+                field = "stationId,locationName,lat,lon,CITY,CITY_SN,TOWN,TOWN_SN,ATTRIBUTE"
+                val = util.GenValue(site,field)
+                with self.connection.cursor() as cursor:
+                    sql = "INSERT IGNORE INTO auto_rain_station ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+
+                d = {}
+                d["stationId"] = loc["stationId"]
+                d["time"] = loc["time"]["obsTime"]
+                for element in loc["weatherElement"]:
+                    name = element["elementName"]
+                    value = float(element["elementValue"]["value"])
+                    d[name] = value
+                field = "stationId,time,ELEV,RAIN,MIN_10,HOUR_3,HOUR_6,HOUR_12,HOUR_24,NOW,latest_2days,latest_3days"
+                val = util.GenValue(d,field)
+                with self.connection.cursor() as cursor:
+                    sql = "INSERT IGNORE INTO auto_rain ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
             self.connection.commit()
