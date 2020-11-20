@@ -173,7 +173,7 @@ class EPAData:
                 
                 data["stationID"] = sites[siteName]
                 dateStr = record["PublishTime"]
-                dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M")
+                dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %H:%M:%S")
                 oneMinAgo = dateObj - datetime.timedelta(minutes=1)
                 data["dateTime"] = oneMinAgo.strftime('%Y-%m-%d %H:%M:%S')
                 data["year"] = oneMinAgo.year
@@ -206,37 +206,39 @@ class EPAData:
             self.connection.commit()
             
         #update weather quality data
-        r = requests.get("http://opendata.epa.gov.tw/ws/Data/ATM00419/?$skip=0&$top=1000&format=json")
+        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_35?format=json&limit=1000&api_key=f9d148ba-6ffb-45a2-a227-ebf0208a4ef8")
         if r.status_code == requests.codes.all_okay:
-            records = r.json()
+            records = r.json()["records"]
             for record in records:
                 siteName = record["SiteName"]
                 if not siteName in sites:
                     continue
 
                 dateStr = record["MonitorDate"]
-                dateStr = dateStr.replace("上午","AM")
-                dateStr = dateStr.replace("下午","PM")
-                dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %p %I:%M:%S")
-                oneMinAgo = dateObj - datetime.timedelta(minutes=1)
-                q = "year="+str(oneMinAgo.year)
-                q += " AND month="+str(oneMinAgo.month)
-                q += " AND day="+str(oneMinAgo.day)
-                q += " AND hour="+str(oneMinAgo.hour)
+                dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M:%S")
+                q = "year="+str(dateObj.year)
+                q += " AND month="+str(dateObj.month)
+                q += " AND day="+str(dateObj.day)
+                q += " AND hour="+str(dateObj.hour)
                 q += " AND stationID='"+sites[siteName]+"'"
                 
                 if record["ItemName"] == "溫度":
                     with self.connection.cursor() as cursor:
                         q += "AND tmp IS NULL"
-                        temp = str(float(record["Concentration"])+273.15)
+                        try:
+                            v = float(record["Concentration"])
+                            v = v+273.15
+                        except ValueError:
+                            v = "NULL"
+                        temp = str(v)
                         sql = "UPDATE epa_DATA SET tmp="+temp+" WHERE "+q
                         cursor.execute(sql)
                     
                 if record["ItemName"] == "相對濕度":
                     with self.connection.cursor() as cursor:
                         q += "AND rh IS NULL"
-                        rh = record["Concentration"]
-                        sql = "UPDATE epa_DATA SET rh="+rh+" WHERE "+q
+                        rh = ToFloat(record["Concentration"])
+                        sql = "UPDATE epa_DATA SET rh="+str(rh)+" WHERE "+q
                         cursor.execute(sql)
                         
             self.connection.commit()
