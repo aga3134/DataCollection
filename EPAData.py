@@ -174,12 +174,11 @@ class EPAData:
                 data["stationID"] = sites[siteName]
                 dateStr = record["PublishTime"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %H:%M:%S")
-                oneMinAgo = dateObj - datetime.timedelta(minutes=1)
-                data["dateTime"] = oneMinAgo.strftime('%Y-%m-%d %H:%M:%S')
-                data["year"] = oneMinAgo.year
-                data["month"] = oneMinAgo.month
-                data["day"] = oneMinAgo.day
-                data["hour"] = oneMinAgo.hour
+                data["dateTime"] = dateObj.strftime('%Y-%m-%d %H:%M:%S')
+                data["year"] = dateObj.year
+                data["month"] = dateObj.month
+                data["day"] = dateObj.day
+                data["hour"] = dateObj.hour
                 
                 data["SO2"] = ToFloat(record["SO2"])
                 data["CO"] = ToFloat(record["CO"])
