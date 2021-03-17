@@ -108,9 +108,9 @@ class EPAData:
         
     def AddSite(self):
         print("Add Sites for EPA Data")
-        r = requests.get("http://opendata.epa.gov.tw/ws/Data/AQXSite/?$format=json")
+        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_07?format=json&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
         if r.status_code == requests.codes.all_okay:
-            sites = r.json()
+            sites = r.json()["records"]
             field = "id,engName,areaName,county,township,siteAddr,lng,lat,siteType"
             keyStr = "SiteName,SiteEngName,AreaName,County,Township,SiteAddress,TWD97Lon,TWD97Lat,SiteType"
             
@@ -149,29 +149,20 @@ class EPAData:
                 return "NULL"
     
         print("Collect EPA Data NCHU")
-        #fetch aqi sites
-        sites = {}
-        with self.connection.cursor() as cursor:
-            sql = "select StationID,StationName from epa_stationID"
-            cursor.execute(sql)
-            results = cursor.fetchall()
-            for row in results:
-                sites[row["StationName"]] = row["StationID"]
         
         #update air quality data
-        r = requests.get("http://opendata2.epa.gov.tw/AQI.json")
+        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_432?format=json5&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
         if r.status_code == requests.codes.all_okay:
-            records = r.json()
-            field = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr"
-            keyStr = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr"
+            records = r.json()["records"]
+            field = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr,PMf"
+            keyStr = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr,PMf"
+            stationField = "StationID,StationName,lat,lon"
             
             for record in records:
                 data = {}
                 siteName = record["SiteName"]
-                if not siteName in sites:
-                    continue
                 
-                data["stationID"] = sites[siteName]
+                data["stationID"] = "EPA"+util.PadLeft(record["SiteId"],"0",3)
                 dateStr = record["PublishTime"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %H:%M:%S")
                 data["dateTime"] = dateObj.strftime('%Y-%m-%d %H:%M:%S')
@@ -196,10 +187,22 @@ class EPAData:
                     data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
                     data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
                 data["PMfCorr"] = ToFloat(record["PM2.5"])
+                data["PMf"] = ToFloat(record["PM2.5"])
                 
                 val = util.GenValue(data,keyStr)
                 with self.connection.cursor() as cursor:
                     sql = "INSERT IGNORE INTO epa_DATA ("+field+") VALUES ("+val+")"
+                    cursor.execute(sql)
+
+                #add station if not exist
+                station = {}
+                station["StationID"] = data["stationID"]
+                station["StationName"] = siteName
+                station["lat"] = ToFloat(record["Latitude"])
+                station["lon"] = ToFloat(record["Longitude"])
+                val = util.GenValue(station,stationField)
+                with self.connection.cursor() as cursor:
+                    sql = "INSERT IGNORE INTO epa_stationID ("+stationField+") VALUES ("+val+")"
                     cursor.execute(sql)
                     
             self.connection.commit()
@@ -210,8 +213,7 @@ class EPAData:
             records = r.json()["records"]
             for record in records:
                 siteName = record["SiteName"]
-                if not siteName in sites:
-                    continue
+                sID  = "EPA"+util.PadLeft(record["SiteId"],"0",3)
 
                 dateStr = record["MonitorDate"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M:%S")
@@ -219,7 +221,7 @@ class EPAData:
                 q += " AND month="+str(dateObj.month)
                 q += " AND day="+str(dateObj.day)
                 q += " AND hour="+str(dateObj.hour)
-                q += " AND stationID='"+sites[siteName]+"'"
+                q += " AND stationID='"+sID+"'"
                 
                 if record["ItemName"] == "溫度":
                     with self.connection.cursor() as cursor:
