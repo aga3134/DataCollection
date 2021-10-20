@@ -10,6 +10,7 @@ import json
 import datetime
 import pytz
 import DataCollectUtil as util
+import pymysql
 
 class PowerData:
     def __init__(self, connection):
@@ -19,7 +20,7 @@ class PowerData:
         print("Create Table for Power Data")
         with self.connection.cursor() as cursor:
             sql = "CREATE TABLE IF NOT EXISTS PowerStations (\
-                id VARCHAR(255),\
+                id VARCHAR(32),\
                 name VARCHAR(255),\
                 lat FLOAT,\
                 lng FLOAT,\
@@ -30,7 +31,8 @@ class PowerData:
             cursor.execute(sql)
             
             sql = "CREATE TABLE IF NOT EXISTS PowerGens (\
-                stationID VARCHAR(255),\
+                powerGen_id VARCHAR(32)\
+                stationID VARCHAR(10),\
                 powerGen FLOAT,\
                 remark VARCHAR(255),\
                 time DATETIME,\
@@ -70,34 +72,70 @@ class PowerData:
             cursor.execute(sql)
 
         self.connection.commit()
-        
+       
+    def ToFloat(self,s):
+        try:
+            if isinstance(s, float) or isinstance(s, int):
+                return float(s)
+            else:
+                return float(s.replace(",",""))
+        except ValueError:
+            return None
+ 
     def CollectPowerGen(self):
         print("Collect Power Generation")
-        r = requests.get("https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/genary.txt")
+        
+        #load station id mapping table
+        config = json.loads(open("config.json").read())
+        auth = config["mysqlAuth"]
+        powerConn = pymysql.connect(host=auth["host"],user=auth["username"],
+            password=auth["password"],db="PowerGen",
+            charset='utf8',cursorclass=pymysql.cursors.DictCursor)
+        idMapping = {}
+        with powerConn.cursor() as cursor:
+            sql = "SELECT powerGen_id,stationID from station_power"
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+            for row in rows:
+                idMapping[row["powerGen_id"]] = row["stationID"]
+        #print(idMapping)
+
+        r = requests.get("https://data.taipower.com.tw/opendata01/apply/file/d006001/001.txt")
         r.encoding = "utf-8"
         if r.status_code == requests.codes.all_okay:
-            txt = "{\"time"+r.text[2:]
-            
-            data = json.loads(txt)
-            t = data["time"]
+            data = json.loads(r.text)
+            t = data[""]
             stationArr = []
             dataArr = []
+            typeMapping = {
+                "核能":"nuclear","燃煤":"coal","汽電共生":"cogen","民營電廠-燃煤":"ippcoal","燃氣":"lng","民營電廠-燃氣":"ipplng","燃油":"oil","輕油":"diesel","水力":"hydro","風力":"wind","太陽能":"solar","抽蓄發電":"pumpinggen","抽蓄負載":"pumpingload"
+            }
             for device in data["aaData"]:
                 if device[1] == "小計":
                     continue
+                if device[0] in typeMapping:
+                    device[0] = typeMapping[device[0]]
                 station = {}
-                station["type"] = device[0].split("'")[1]
+                station["type"] = device[0]
                 station["name"] = device[1]
                 station["id"] = station["type"]+"_"+station["name"]
                 station["capacity"] = device[2]
                 stationArr.append(station)
                 
                 data = {}
-                data["stationID"] = station["id"]
-                data["powerGen"] = device[3]
+                data["powerGen_id"] = station["id"]
+                data["stationID"] = None
+                if station["id"] in idMapping:
+                    data["stationID"] = idMapping[station["id"]]
+                data["powerGen"] = self.ToFloat(device[3])
+                data["device_capacity"] = self.ToFloat(device[2])
+                data["capacity_factor"] = None
+                if data["powerGen"] is not None and data["device_capacity"] is not None:
+                    data["capacity_factor"] = data["powerGen"]/data["device_capacity"]
                 data["remark"] = device[5]
                 data["time"] = t
                 dataArr.append(data)
+                #print(data)
                 
             field = "id,name,capacity,type"
             keyStr = "id,name,capacity,type"
@@ -107,8 +145,8 @@ class PowerData:
                     sql = "INSERT IGNORE INTO PowerStations ("+field+") VALUES ("+val+")"
                     cursor.execute(sql)
                     
-            field = "stationID,powerGen,remark,time"
-            keyStr = "stationID,powerGen,remark,time"
+            field = "powerGen_id,stationID,powerGen,device_capacity,capacity_factor,remark,time"
+            keyStr = "powerGen_id,stationID,powerGen,device_capacity,capacity_factor,remark,time"
             for data in dataArr:
                 val = util.GenValue(data,keyStr)
                 with self.connection.cursor() as cursor:
