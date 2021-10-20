@@ -86,13 +86,8 @@ class PowerData:
         print("Collect Power Generation")
         
         #load station id mapping table
-        config = json.loads(open("config.json").read())
-        auth = config["mysqlAuth"]
-        powerConn = pymysql.connect(host=auth["host"],user=auth["username"],
-            password=auth["password"],db="PowerGen",
-            charset='utf8',cursorclass=pymysql.cursors.DictCursor)
         idMapping = {}
-        with powerConn.cursor() as cursor:
+        with self.connection.cursor() as cursor:
             sql = "SELECT powerGen_id,stationID from station_power"
             cursor.execute(sql)
             rows = cursor.fetchall()
