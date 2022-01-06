@@ -128,7 +128,7 @@ class EPAData:
         if r.status_code == requests.codes.all_okay:
             sites = r.json()
             field = "siteName,AQI,CO,NO,NO2,NOx,O3,PM10,PM25,SO2,windDir,windSpeed,time"
-            keyStr = "SiteName,AQI,CO,NO,NO2,NOx,O3,PM10,PM2.5,SO2,WindDirec,WindSpeed,PublishTime"
+            keyStr = "SiteName,AQI,CO,NO,NO2,NOx,O3,PM10,PM2.5,SO2,WIND_DIREC,WIND_SPEED,PublishTime"
             
             for site in sites:
                 val = util.GenValue(site,keyStr)
@@ -178,8 +178,8 @@ class EPAData:
                 data["NOx"] = ToFloat(record["NOx"])
                 data["NO"] = ToFloat(record["NO"])
                 data["NO2"] = ToFloat(record["NO2"])
-                data["wind"] = ToFloat(record["WindSpeed"])
-                data["wDir"] = ToFloat(record["WindDirec"])
+                data["wind"] = ToFloat(record["WIND_SPEED"])
+                data["wDir"] = ToFloat(record["WIND_DIREC"])
                 if data["wind"] == "NULL" or data["wDir"] == "NULL":
                     data["uGrd"] = "NULL"
                     data["vGrd"] = "NULL"
