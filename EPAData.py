@@ -165,6 +165,8 @@ class EPAData:
                 data["stationID"] = "EPA"+util.PadLeft(record["SiteId"],"0",3)
                 dateStr = record["PublishTime"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %H:%M:%S")
+                #將發佈時間減一小時對齊資料實際時間
+                dateObj = dateObj - datetime.timedelta(hours=1)
                 data["dateTime"] = dateObj.strftime('%Y-%m-%d %H:%M:%S')
                 data["year"] = dateObj.year
                 data["month"] = dateObj.month
@@ -217,6 +219,8 @@ class EPAData:
 
                 dateStr = record["MonitorDate"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M:%S")
+                #將發佈時間減一小時對齊資料實際時間
+                dateObj = dateObj - datetime.timedelta(hours=1)
                 q = "year="+str(dateObj.year)
                 q += " AND month="+str(dateObj.month)
                 q += " AND day="+str(dateObj.day)
