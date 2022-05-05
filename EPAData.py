@@ -108,7 +108,8 @@ class EPAData:
         
     def AddSite(self):
         print("Add Sites for EPA Data")
-        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_07?format=json&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
+        #r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_07?format=json&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
+        r = requests.get("https://data.epa.gov.tw/api/v2/aqx_p_07?format=json&api_key=2295c87a-6124-41e2-b7f1-cc7728f17d6a")
         if r.status_code == requests.codes.all_okay:
             sites = r.json()["records"]
             field = "id,engName,areaName,county,township,siteAddr,lng,lat,siteType"
@@ -151,7 +152,8 @@ class EPAData:
         print("Collect EPA Data NCHU")
         
         #update air quality data
-        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_432?format=json5&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
+        #r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_432?format=json5&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
+        r = requests.get("https://data.epa.gov.tw/api/v2/aqx_p_432?format=json&api_key=2295c87a-6124-41e2-b7f1-cc7728f17d6a")
         if r.status_code == requests.codes.all_okay:
             records = r.json()["records"]
             field = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr,PMf"
@@ -160,10 +162,10 @@ class EPAData:
             
             for record in records:
                 data = {}
-                siteName = record["SiteName"]
+                siteName = record["sitename"]
                 
-                data["stationID"] = "EPA"+util.PadLeft(record["SiteId"],"0",3)
-                dateStr = record["PublishTime"]
+                data["stationID"] = "EPA"+util.PadLeft(record["siteid"],"0",3)
+                dateStr = record["publishtime"]
                 dateObj = datetime.datetime.strptime(dateStr, "%Y/%m/%d %H:%M:%S")
                 #將發佈時間減一小時對齊資料實際時間
                 dateObj = dateObj - datetime.timedelta(hours=1)
@@ -173,23 +175,23 @@ class EPAData:
                 data["day"] = dateObj.day
                 data["hour"] = dateObj.hour
                 
-                data["SO2"] = ToFloat(record["SO2"])
-                data["CO"] = ToFloat(record["CO"])
-                data["O3"] = ToFloat(record["O3"])
-                data["PM10"] = ToFloat(record["PM10"])
-                data["NOx"] = ToFloat(record["NOx"])
-                data["NO"] = ToFloat(record["NO"])
-                data["NO2"] = ToFloat(record["NO2"])
-                data["wind"] = ToFloat(record["WIND_SPEED"])
-                data["wDir"] = ToFloat(record["WIND_DIREC"])
+                data["SO2"] = ToFloat(record["so2"])
+                data["CO"] = ToFloat(record["co"])
+                data["O3"] = ToFloat(record["o3"])
+                data["PM10"] = ToFloat(record["pm10"])
+                data["NOx"] = ToFloat(record["nox"])
+                data["NO"] = ToFloat(record["no"])
+                data["NO2"] = ToFloat(record["no2"])
+                data["wind"] = ToFloat(record["wind_speed"])
+                data["wDir"] = ToFloat(record["wind_direc"])
                 if data["wind"] == "NULL" or data["wDir"] == "NULL":
                     data["uGrd"] = "NULL"
                     data["vGrd"] = "NULL"
                 else:
                     data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
                     data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
-                data["PMfCorr"] = ToFloat(record["PM2.5"])
-                data["PMf"] = ToFloat(record["PM2.5"])
+                data["PMfCorr"] = ToFloat(record["pm2.5"])
+                data["PMf"] = ToFloat(record["pm2.5"])
                 
                 val = util.GenValue(data,keyStr)
                 with self.connection.cursor() as cursor:
@@ -200,8 +202,8 @@ class EPAData:
                 station = {}
                 station["StationID"] = data["stationID"]
                 station["StationName"] = siteName
-                station["lat"] = ToFloat(record["Latitude"])
-                station["lon"] = ToFloat(record["Longitude"])
+                station["lat"] = ToFloat(record["latitude"])
+                station["lon"] = ToFloat(record["longitude"])
                 val = util.GenValue(station,stationField)
                 with self.connection.cursor() as cursor:
                     sql = "INSERT IGNORE INTO epa_stationID ("+stationField+") VALUES ("+val+")"
@@ -210,15 +212,16 @@ class EPAData:
             self.connection.commit()
             
         #update weather quality data
-        r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_35?format=json&limit=1000&api_key=f9d148ba-6ffb-45a2-a227-ebf0208a4ef8")
+        #r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_35?format=json&limit=1000&api_key=f9d148ba-6ffb-45a2-a227-ebf0208a4ef8")
+        r = requests.get("https://data.epa.gov.tw/api/v2/aqx_p_35?format=json&limit=1000&api_key=2295c87a-6124-41e2-b7f1-cc7728f17d6a")
         if r.status_code == requests.codes.all_okay:
             records = r.json()["records"]
             for record in records:
-                siteName = record["SiteName"]
-                sID  = "EPA"+util.PadLeft(record["SiteId"],"0",3)
+                siteName = record["sitename"]
+                sID  = "EPA"+util.PadLeft(record["siteid"],"0",3)
 
-                dateStr = record["MonitorDate"]
-                dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M:%S")
+                dateStr = record["monitordate"]
+                dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M")
                 #將發佈時間減一小時對齊資料實際時間
                 dateObj = dateObj - datetime.timedelta(hours=1)
                 q = "year="+str(dateObj.year)
@@ -227,11 +230,11 @@ class EPAData:
                 q += " AND hour="+str(dateObj.hour)
                 q += " AND stationID='"+sID+"'"
                 
-                if record["ItemName"] == "溫度":
+                if record["itemname"] == "溫度":
                     with self.connection.cursor() as cursor:
                         q += "AND tmp IS NULL"
                         try:
-                            v = float(record["Concentration"])
+                            v = float(record["concentration"])
                             v = v+273.15
                         except ValueError:
                             v = "NULL"
@@ -239,10 +242,10 @@ class EPAData:
                         sql = "UPDATE epa_DATA SET tmp="+temp+" WHERE "+q
                         cursor.execute(sql)
                     
-                if record["ItemName"] == "相對濕度":
+                if record["itemname"] == "相對濕度":
                     with self.connection.cursor() as cursor:
                         q += "AND rh IS NULL"
-                        rh = ToFloat(record["Concentration"])
+                        rh = ToFloat(record["concentration"])
                         sql = "UPDATE epa_DATA SET rh="+str(rh)+" WHERE "+q
                         cursor.execute(sql)
                         
