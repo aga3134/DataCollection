@@ -226,7 +226,7 @@ class EPAData:
                         temp = util.ToFloat(record["concentration"])
                         if temp is not None:
                             temp = temp+273.15
-                            sql = "UPDATE epa_DATA SET tmp="+temp+" WHERE "+q
+                            sql = "UPDATE epa_DATA SET tmp="+str(temp)+" WHERE "+q
                             cursor.execute(sql)
                     
                 if record["itemname"] == "相對濕度":
@@ -295,7 +295,7 @@ class EPAData:
                         if len(arr) == 0:
                             continue
                         sql += ",".join(arr)
-                        print(sql)
+                        #print(sql)
                         cursor.execute(sql)
                         
                 self.connection.commit()
