@@ -24,6 +24,12 @@ def GenValue(record, keyStr):
             val+=","
     return val
 
+def ToFloat(s):
+    try:
+        return float(s)
+    except ValueError:
+        return None
+        
 def IsNumber(s):
     if s is None:
         return False

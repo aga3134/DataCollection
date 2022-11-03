@@ -127,6 +127,13 @@ if __name__ == "__main__":
             except:
                 print(sys.exc_info()[0])
                 traceback.print_exc()
+
+        if "update" in args:
+            try:
+                epa.UpdateDataNCHU()
+            except:
+                print(sys.exc_info()[0])
+                traceback.print_exc()
     
     
     connection.close()

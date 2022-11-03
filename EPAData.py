@@ -140,17 +140,7 @@ class EPAData:
             self.connection.commit()
         
     def CollectDataNCHU(self):
-        def ToFloat(s):
-            try:
-                v = float(s)
-                if v < 0:
-                    return "NULL"
-                return v
-            except ValueError:
-                return "NULL"
-    
         print("Collect EPA Data NCHU")
-        
         #update air quality data
         #r = requests.get("https://data.epa.gov.tw/api/v1/aqx_p_432?format=json5&api_key=9be7b239-557b-4c10-9775-78cadfc555e9")
         r = requests.get("https://data.epa.gov.tw/api/v2/aqx_p_432?format=json&api_key=2295c87a-6124-41e2-b7f1-cc7728f17d6a")
@@ -175,23 +165,23 @@ class EPAData:
                 data["day"] = dateObj.day
                 data["hour"] = dateObj.hour
                 
-                data["SO2"] = ToFloat(record["so2"])
-                data["CO"] = ToFloat(record["co"])
-                data["O3"] = ToFloat(record["o3"])
-                data["PM10"] = ToFloat(record["pm10"])
-                data["NOx"] = ToFloat(record["nox"])
-                data["NO"] = ToFloat(record["no"])
-                data["NO2"] = ToFloat(record["no2"])
-                data["wind"] = ToFloat(record["wind_speed"])
-                data["wDir"] = ToFloat(record["wind_direc"])
-                if data["wind"] == "NULL" or data["wDir"] == "NULL":
-                    data["uGrd"] = "NULL"
-                    data["vGrd"] = "NULL"
+                data["SO2"] = util.ToFloat(record["so2"])
+                data["CO"] = util.ToFloat(record["co"])
+                data["O3"] = util.ToFloat(record["o3"])
+                data["PM10"] = util.ToFloat(record["pm10"])
+                data["NOx"] = util.ToFloat(record["nox"])
+                data["NO"] = util.ToFloat(record["no"])
+                data["NO2"] = util.ToFloat(record["no2"])
+                data["wind"] = util.ToFloat(record["wind_speed"])
+                data["wDir"] = util.ToFloat(record["wind_direc"])
+                if data["wind"] is None or data["wDir"] is None:
+                    data["uGrd"] = None
+                    data["vGrd"] = None
                 else:
                     data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
                     data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
-                data["PMfCorr"] = ToFloat(record["pm2.5"])
-                data["PMf"] = ToFloat(record["pm2.5"])
+                data["PMfCorr"] = util.ToFloat(record["pm2.5"])
+                data["PMf"] = util.ToFloat(record["pm2.5"])
                 
                 val = util.GenValue(data,keyStr)
                 with self.connection.cursor() as cursor:
@@ -202,8 +192,8 @@ class EPAData:
                 station = {}
                 station["StationID"] = data["stationID"]
                 station["StationName"] = siteName
-                station["lat"] = ToFloat(record["latitude"])
-                station["lon"] = ToFloat(record["longitude"])
+                station["lat"] = util.ToFloat(record["latitude"])
+                station["lon"] = util.ToFloat(record["longitude"])
                 val = util.GenValue(station,stationField)
                 with self.connection.cursor() as cursor:
                     sql = "INSERT IGNORE INTO epa_stationID ("+stationField+") VALUES ("+val+")"
@@ -233,20 +223,81 @@ class EPAData:
                 if record["itemname"] == "溫度":
                     with self.connection.cursor() as cursor:
                         q += "AND tmp IS NULL"
-                        try:
-                            v = float(record["concentration"])
-                            v = v+273.15
-                        except ValueError:
-                            v = "NULL"
-                        temp = str(v)
-                        sql = "UPDATE epa_DATA SET tmp="+temp+" WHERE "+q
-                        cursor.execute(sql)
+                        temp = util.ToFloat(record["concentration"])
+                        if temp is not None:
+                            temp = temp+273.15
+                            sql = "UPDATE epa_DATA SET tmp="+temp+" WHERE "+q
+                            cursor.execute(sql)
                     
                 if record["itemname"] == "相對濕度":
                     with self.connection.cursor() as cursor:
                         q += "AND rh IS NULL"
-                        rh = ToFloat(record["concentration"])
-                        sql = "UPDATE epa_DATA SET rh="+str(rh)+" WHERE "+q
-                        cursor.execute(sql)
+                        rh = util.ToFloat(record["concentration"])
+                        if rh is not None:
+                            sql = "UPDATE epa_DATA SET rh="+str(rh)+" WHERE "+q
+                            cursor.execute(sql)
                         
             self.connection.commit()
+
+    def UpdateDataNCHU(self):
+        print("Update EPA Data NCHU")
+        offset = 0
+        limit = 1000
+        maxOffset = 2000
+        while offset < maxOffset:
+            url = "https://data.epa.gov.tw/api/v2/aqx_p_488?format=json&api_key=2295c87a-6124-41e2-b7f1-cc7728f17d6a&offset=%d&limit=%d" % (offset,limit)
+            print(url)
+            r = requests.get(url)
+
+            if r.status_code == requests.codes.all_okay:
+                records = r.json()["records"]
+                field = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr,PMf"
+                keyStr = "year,month,day,hour,stationID,dateTime,SO2,CO,O3,PM10,NOx,NO,NO2,wind,wDir,uGrd,vGrd,PMfCorr,PMf"
+
+                for record in records:
+                    data = {}
+                    data["stationID"] = "EPA"+util.PadLeft(record["siteid"],"0",3)
+                    dateStr = record["datacreationdate"]
+                    dateObj = datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M")
+                    #將發佈時間減一小時對齊資料實際時間
+                    dateObj = dateObj - datetime.timedelta(hours=1)
+                    data["dateTime"] = dateObj.strftime('%Y-%m-%d %H:%M:%S')
+                    data["year"] = dateObj.year
+                    data["month"] = dateObj.month
+                    data["day"] = dateObj.day
+                    data["hour"] = dateObj.hour
+                    
+                    data["SO2"] = util.ToFloat(record["so2"])
+                    data["CO"] = util.ToFloat(record["co"])
+                    data["O3"] = util.ToFloat(record["o3"])
+                    data["PM10"] = util.ToFloat(record["pm10"])
+                    data["NOx"] = util.ToFloat(record["nox"])
+                    data["NO"] = util.ToFloat(record["no"])
+                    data["NO2"] = util.ToFloat(record["no2"])
+                    data["wind"] = util.ToFloat(record["windspeed"])
+                    data["wDir"] = util.ToFloat(record["winddirec"])
+                    if data["wind"] is None or data["wDir"] is None:
+                        data["uGrd"] = None
+                        data["vGrd"] = None
+                    else:
+                        data["uGrd"] = (-1)*data["wind"]*math.sin(data["wDir"]/180*3.1415926)
+                        data["vGrd"] = (-1)*data["wind"]*math.cos(data["wDir"]/180*3.1415926)
+                    data["PMfCorr"] = util.ToFloat(record["pm2.5"])
+                    data["PMf"] = util.ToFloat(record["pm2.5"])
+                    
+                    val = util.GenValue(data,keyStr)
+                    with self.connection.cursor() as cursor:
+                        sql = "INSERT INTO epa_DATA ("+field+") VALUES ("+val+") ON DUPLICATE KEY UPDATE "
+                        arr = []
+                        for key in ["SO2","CO","O3","PM10","NOx","NO","NO2","wind","wDir","uGrd","vGrd","PMfCorr","PMf"]:
+                            if data[key] is not None:
+                                arr.append("%s=VALUES(%s)" % (key,key))
+                        if len(arr) == 0:
+                            continue
+                        sql += ",".join(arr)
+                        print(sql)
+                        cursor.execute(sql)
+                        
+                self.connection.commit()
+
+            offset += limit
